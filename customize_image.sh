@@ -86,6 +86,9 @@ cleanup_umount() {
 	if mountpoint -q "$IMAGEDIR/boot" ; then
 		umount "$IMAGEDIR/boot"
 	fi
+	if mountpoint -q "$IMAGEDIR/proc" ; then
+		umount "$IMAGEDIR/proc"
+	fi
 	if mountpoint -q "$IMAGEDIR" ; then
 		umount "$IMAGEDIR"
 	fi
@@ -262,10 +265,10 @@ chroot "$IMAGEDIR" apt-get clean
 
 if [ -e "$IMAGEDIR/etc/init.d/apache2" ] ; then
 	# annoyingly, the postinstall script starts apache2 on fresh installs
-	mount -t proc procfs "$IMAGEDIR/proc"
-	sed -r -i -e 's/pidof /pidof -x /' "$IMAGEDIR/etc/init.d/apache2"
-	chroot "$IMAGEDIR" /etc/init.d/apache2 stop
-	umount "$IMAGEDIR/proc"
+	# mount -t proc procfs "$IMAGEDIR/proc"
+	# sed -r -i -e 's/pidof /pidof -x /' "$IMAGEDIR/etc/init.d/apache2"
+	# # chroot "$IMAGEDIR" /etc/init.d/apache2 stop
+	# umount "$IMAGEDIR/proc"
 
 	# configure apache2
 	chroot "$IMAGEDIR" a2enmod ssl
@@ -322,7 +325,8 @@ rm "$IMAGEDIR/var/lib/apt/lists/"*Packages
 if [ "$(/bin/ls "$BAKERYDIR/debs-to-install/"*.deb 2>/dev/null)" ] ; then
 	mkdir "$IMAGEDIR/tmp/debs-to-install"
 	mount --bind "$BAKERYDIR/debs-to-install" "$IMAGEDIR/tmp/debs-to-install"
-	chroot "$IMAGEDIR" sh -c "dpkg -i /tmp/debs-to-install/*.deb"
+	mount -t proc procfs "$IMAGEDIR/proc" # java command requires mounted proc
+	(chroot "$IMAGEDIR" sh -c "apt-get update && apt-get install -y /tmp/debs-to-install/*.deb" || (umount "$IMAGEDIR/proc"; cleanup; exit 1))
 fi
 
 # remove logs and ssh host keys
