@@ -180,20 +180,6 @@ cp "$BAKERYDIR/templates/revpi.list" "$IMAGEDIR/etc/apt/sources.list.d"
 #   from /etc/ld.so.preload cannot be preloaded (cannot open shared object file): ignored.
 [[ -f "$IMAGEDIR/etc/ld.so.preload" ]] && mv "$IMAGEDIR/etc/ld.so.preload" "$IMAGEDIR/etc/ld.so.preload.bak"
 
-# copy piTest source code
-PICONTROLDIR=`mktemp -d -p /tmp piControl.XXXXXXXX`
-git clone https://github.com/RevolutionPi/piControl $PICONTROLDIR
-cp -pr $PICONTROLDIR/piTest "$IMAGEDIR/home/pi/demo"
-cp -p $PICONTROLDIR/piControl.h "$IMAGEDIR/home/pi/demo"
-sed -i -r -e 's%\.\./%%' "$IMAGEDIR/home/pi/demo/Makefile"
-chown -R 1000:1000 "$IMAGEDIR/home/pi/demo"
-chmod -R a+rX "$IMAGEDIR/home/pi/demo"
-rm -r $PICONTROLDIR
-
-# remove bookshelf if present
-if [[ -d $IMAGEDIR/home/pi/Bookshelf ]]; then
-    rm -r $IMAGEDIR/home/pi/Bookshelf
-fi
 
 # customize settings
 echo Europe/Berlin > "$IMAGEDIR/etc/timezone"
@@ -315,9 +301,6 @@ if [ -e "$IMAGEDIR/etc/systemd/system/getty@tty1.service.d/autologin.conf" ] ; t
 	rm -f "$IMAGEDIR/etc/systemd/system/getty@tty1.service.d/autologin.conf"
 fi
 
-# peg cpu at 1200 MHz to maximize spi0 throughput and avoid jitter
-chroot "$IMAGEDIR" /usr/bin/revpi-config enable perf-governor
-
 # remove package lists, they will be outdated within days
 rm "$IMAGEDIR/var/lib/apt/lists/"*Packages
 
@@ -336,8 +319,6 @@ find "$IMAGEDIR/etc/ssh" -name "ssh_host_*_key*" -delete
 # restore ld.so.preload
 [[ -f "$IMAGEDIR/etc/ld.so.preload.bak" ]] && mv "$IMAGEDIR/etc/ld.so.preload.bak" "$IMAGEDIR/etc/ld.so.preload"
 
-# after package raspberrypi-kernel installed, install revpi-dt-blob.dtbo as default dt-blob
-install -T "$IMAGEDIR/boot/overlays/revpi-dt-blob.dtbo" "$IMAGEDIR/boot/dt-blob.bin"
 
 cleanup_umount
 

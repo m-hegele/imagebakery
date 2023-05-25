@@ -1,60 +1,56 @@
-# Create custom images for Revolution Pi
+# Robust ChargeCtrl-OS Updates
 
-## Intended usage
+Def.: ChargeCtrl = Revolution Pi Connect+ or Revolution Pi Connect SE with
 
-> **NOTE:** When creating a custom image, always use the most recent release tag (available at https://github.com/RevolutionPi/imagebakery/tags), as the master branch may contain code that is still in development.
+- Raspbian 10 (buster)
+- set of installed Debian packages (see `debs-to-install`) and their dependencies
+- some pre-configuration (see `customize_image.sh`, e.g. SSH enabled) 
 
-### Download Raspberry Pi OS (previously called Raspbian) image
+Desired outcome: ChargeCtrl can be updated to a new custom image (e.g. based on Raspbian 11 bullseye) *in the field*. 
+The update should be robust to sudden outages in power or connection.
+The solution should be installable via a remote SSH connection.
 
-Works with both [Raspberry Pi OS](https://www.raspberrypi.org/software/operating-systems/#raspberry-pi-os-32-bit) desktop and lite images.
+## Hardware
 
-*Raspberry Pi OS with desktop*
+- 1 RevPi Connect with a CM3 (Connect+)
+- 1 RevPi Connect with a CM4S (Connect SE)
+- important: don't remove the jumper cable from pins 6 (0V) to 7 (WD), otherwise a watchdog will cyclically reboot the device (https://revolutionpi.com/tutorials/uebersicht-revpi-connect/watchdog-connect/)
+
+## Build of an image based on Raspbian 10 (buster) and RevPi software from KUNBUS
+
 ```
-curl -O https://downloads.raspberrypi.org/raspios_oldstable_armhf/images/raspios_oldstable_armhf-2022-09-26/2022-09-22-raspios-buster-armhf.img.xz
-xz -d 2022-09-22-raspios-buster-armhf.img.xz
-```
+# get build script
+git clone git@github.com:m-hegele/imagebakery.git
+cd imagebakery
+git checkout min-imagebuild
 
-*Raspberry Pi OS Lite*
-```
+# get debs-to-install
+cp <OneDrive>/debs-to-install/*.deb ./debs-to-install/
+
+# get base image
 curl -O https://downloads.raspberrypi.org/raspios_oldstable_lite_armhf/images/raspios_oldstable_lite_armhf-2022-09-26/2022-09-22-raspios-buster-armhf-lite.img.xz
 xz -d 2022-09-22-raspios-buster-armhf-lite.img.xz
+cp  2022-09-22-raspios-buster-armhf-lite.img chargectrl-netlight.img
+
+# build image
+sudo ./customize_image.sh --minimize chargectrl-netlight.img
+
+# if you need to copy the image somewhere, compress it
+xz -T0 --fast -f -k -v chargectrl-netlight.img
+
+# flash chargectrl-netlight.img, e.g. using BalenaEtcher
 ```
 
-### Customize for Revolution Pi
+### Checking the Image 
 
-The script requires root privileges, an armhf system (eg. Raspberry Pi or VM) and internet connectivity.
+- connect to the RevPi (easiest with a micro HDMI cable and a keyboard, otherwise run a DHCP server and monitor it for new devices)
+- log in to the `pi` user with the standard `raspberry` password
+- follow the instructions to configure the RevPi
+    - the serial is the first number on the bottom left next to the DataMatrix
+    - the MAC is in the center
+- next time you will have to log in with the password that is printed on the right side of the RevPi
+- check installation of ChargeHere software:
+    - `dpkg -l ch-chargectrl` should should `ii ... 0.5.16+netlight2`
+    - `systemctl status ch-ocppintf.service`
+    - `systemctl status ch-loadctrl.service`
 
-If no armhf system is available, a crossbuild can be done with the qemu user static tools:
-
-```
-sudo apt-get install qemu-user-static binfmt-support
-```
-
-In order to build an image with only software that is necessary for basic operation (eg. Pictory and other RevPi tools), you have to call the customization script with the `--minimize` option. This option is used to build our official lite image (based on the foundations lite image).
-
-`customize_image.sh --minimize <raspbian-image>`
-
-For an image with all additional components (like NodeRed, logi-rts and Teamviewer), you must call the customization script without any options:
-
-`customize_image.sh <raspbian-image>`
-
-
-### Install debian packages into Revolution Pi Image
-
-If you would like to modify an existing image by only installing some packages (from repository or local file), you can use the script `install_debs_into_image.sh`. To add a package you can either add the package name to the file debs-to-download or put the package file into the folder `debs-to-install/`. After that you have to invoke the script as following:
-
-`install_debs_into_image.sh <revpi-image>`
-
-### Collect sources on a physical medium for GPL compliance
-
-The script `collect_sources.sh` can be used to collect the sources of the packages shipped with our official image. The official images can be found on our [download page](https://revolutionpi.de/tutorials/downloads/#revpiimages). 
-
-> **Note:** This step requires root access and Internet connectivity.
-
-#### Usage
-
-```
-./collect_sources.sh <revpi-image> /media/usbstick
-
-# eg. ./collect_sources.sh 2022-07-28-revpi-buster-lite.img /media/usbstick
-```
