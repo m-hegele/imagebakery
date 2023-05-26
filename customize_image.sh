@@ -180,16 +180,6 @@ cp "$BAKERYDIR/templates/revpi.list" "$IMAGEDIR/etc/apt/sources.list.d"
 #   from /etc/ld.so.preload cannot be preloaded (cannot open shared object file): ignored.
 [[ -f "$IMAGEDIR/etc/ld.so.preload" ]] && mv "$IMAGEDIR/etc/ld.so.preload" "$IMAGEDIR/etc/ld.so.preload.bak"
 
-# copy piTest source code
-PICONTROLDIR=`mktemp -d -p /tmp piControl.XXXXXXXX`
-git clone https://github.com/RevolutionPi/piControl $PICONTROLDIR
-cp -pr $PICONTROLDIR/piTest "$IMAGEDIR/home/pi/demo"
-cp -p $PICONTROLDIR/piControl.h "$IMAGEDIR/home/pi/demo"
-sed -i -r -e 's%\.\./%%' "$IMAGEDIR/home/pi/demo/Makefile"
-chown -R 1000:1000 "$IMAGEDIR/home/pi/demo"
-chmod -R a+rX "$IMAGEDIR/home/pi/demo"
-rm -r $PICONTROLDIR
-
 # remove bookshelf if present
 if [[ -d $IMAGEDIR/home/pi/Bookshelf ]]; then
     rm -r $IMAGEDIR/home/pi/Bookshelf
@@ -328,6 +318,9 @@ if [ "$(/bin/ls "$BAKERYDIR/debs-to-install/"*.deb 2>/dev/null)" ] ; then
 	mount -t proc procfs "$IMAGEDIR/proc" # java command requires mounted proc
 	(chroot "$IMAGEDIR" sh -c "apt-get update && apt-get install -y /tmp/debs-to-install/*.deb" || (umount "$IMAGEDIR/proc"; cleanup; exit 1))
 fi
+
+# MENDER TEST
+chroot "$IMAGEDIR" sh -c "touch /opt/chargehere/mender_test.txt"
 
 # remove logs and ssh host keys
 find "$IMAGEDIR/var/log" -type f -delete

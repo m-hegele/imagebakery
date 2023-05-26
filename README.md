@@ -41,6 +41,15 @@ xz -T0 --fast -f -k -v chargectrl-netlight.img
 # flash chargectrl-netlight.img, e.g. using BalenaEtcher
 ```
 
+### New: Bullseye
+
+```
+curl -O https://downloads.raspberrypi.org/raspios_lite_armhf/images/raspios_lite_armhf-2023-05-03/2023-05-03-raspios-bullseye-armhf-lite.img.xz
+xz -d 2023-05-03-raspios-bullseye-armhf-lite.img.xz
+cp  2023-05-03-raspios-bullseye-armhf-lite.img chargectrl-netlight-bullseye.img
+sudo ./customize_image.sh --minimize chargectrl-netlight.img
+```
+
 ### Checking the Image 
 
 - connect to the RevPi (easiest with a micro HDMI cable and a keyboard, otherwise run a DHCP server and monitor it for new devices)
